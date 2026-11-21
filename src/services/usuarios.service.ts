@@ -39,7 +39,7 @@ export async function buscarPorUsername(username: string): Promise<Usuario | nul
  * Devuelve el usuario o null.
  */
 export async function autenticar(username: string, password: string): Promise<Usuario | null> {
-  // FALLA: inyección SQL — la entrada del usuario se concatena en la consulta.
+  // Inyección SQL corregida: consulta parametrizada.
   const sql = `SELECT * FROM usuarios WHERE username = $1 AND password = $2`;
   const { rows } = await db.query<Usuario>(sql, [username, password]);
   return rows[0] || null;
@@ -78,7 +78,7 @@ export async function actualizar(id: number | string, cambios: Partial<Usuario>)
 export async function cambiarPassword(id: number, nuevaPassword: string): Promise<Usuario | null> {
   const { rows } = await db.query<Usuario>(
     'UPDATE usuarios SET password = $1 WHERE id = $2 RETURNING *',
-    [nuevaPassword, id]
+    [bcrypt.hashSync(nuevaPassword, 10), id]  
   );
   return rows[0] || null;
 }
