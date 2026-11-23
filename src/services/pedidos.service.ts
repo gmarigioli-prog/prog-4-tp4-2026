@@ -90,12 +90,12 @@ async function buscarProducto(productoId: number): Promise<Producto> {
 
 /** Lista pedidos (con filtro opcional por mesa). */
 export async function listar(mesa?: string): Promise<Pedido[]> {
-  // FALLA: inyección SQL en el filtro de mesa.
+  // Inyección SQL corregida: consulta parametrizada.
   let sql = 'SELECT * FROM pedidos';
-  if (mesa) sql += ` WHERE mesa = '${mesa}'`;
+  if (mesa) sql += ` WHERE mesa = $1`;
   sql += ' ORDER BY id DESC';
 
-  const { rows } = await db.query<Pedido>(sql);
+  const { rows } = await db.query<Pedido>(sql, [mesa]);
   return rows;
 }
 
