@@ -22,20 +22,20 @@
  * -----------------------------------------------------------------------------
  */
 
-import type { Request, Response } from 'express';
+import crypto from "crypto";
+import type { Request, Response } from "express";
 
-import type { Sesion, UsuarioSesion } from '../tipos';
+import type { Sesion, UsuarioSesion } from "../tipos";
 
 export const sesiones = new Map<string, Sesion>();
-let contadorSesiones = 0;
 
 /** Lee las cookies de la petición (parser mínimo, sin dependencias). */
 export function leerCookies(req: Request): Record<string, string> {
   const cookies: Record<string, string> = {};
   const header = req.headers.cookie;
   if (!header) return cookies;
-  for (const parte of header.split(';')) {
-    const separador = parte.indexOf('=');
+  for (const parte of header.split(";")) {
+    const separador = parte.indexOf("=");
     if (separador < 0) continue;
     const nombre = parte.slice(0, separador).trim();
     const valor = parte.slice(separador + 1).trim();
@@ -45,21 +45,31 @@ export function leerCookies(req: Request): Record<string, string> {
 }
 
 /** Crea una sesión nueva para el usuario y setea la cookie. */
-export function crearSesion(req: Request, res: Response, usuario: UsuarioSesion): string {
-  contadorSesiones += 1;
+export function crearSesion(
+  req: Request,
+  res: Response,
+  usuario: UsuarioSesion,
+): string {
+  destruirSesion(req);
+  const id = crypto.randomBytes(32).toString("hex");
+  const csrfToken = crypto.randomBytes(32).toString("hex");
+  const ahora = Date.now();
 
-  // FALLA: identificador predecible.
-  const id = `sesion_${contadorSesiones}`;
-
-  // FALLA: la sesión nunca expira.
   sesiones.set(id, {
     usuario,
-    creadaEn: Date.now(),
-    expiraEn: null,
+    creadaEn: ahora,
+    expiraEn: ahora + 30 * 60 * 1000,
+    expiraAbsolutaEn: ahora + 8 * 60 * 60 * 1000,
+    csrfToken,
   });
 
-  // FALLA: cookie sin httpOnly / secure / sameSite.
-  res.cookie('sid', id, { path: '/' });
+  res.cookie("sid", id, {
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 8 * 60 * 60 * 1000,
+  });
 
   return id;
 }
@@ -69,7 +79,17 @@ export function obtenerSesion(req: Request): Sesion | null {
   const cookies = leerCookies(req);
   const id = cookies.sid;
   if (!id) return null;
-  return sesiones.get(id) || null;
+  const sesion = sesiones.get(id);
+  if (!sesion) return null;
+
+  const ahora = Date.now();
+  if (ahora > sesion.expiraEn || ahora > sesion.expiraAbsolutaEn) {
+    sesiones.delete(id);
+    return null;
+  }
+
+  sesion.expiraEn = ahora + 30 * 60 * 1000;
+  return sesion;
 }
 
 /** Cierra la sesión en el servidor (debería llamarse en el logout). */
