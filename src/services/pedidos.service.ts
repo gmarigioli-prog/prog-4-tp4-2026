@@ -40,16 +40,64 @@ type Id = number | string;
  * Crea un pedido a partir de una lista de items { productoId, cantidad }.
  * Total = suma de calcularPrecio(producto) x cantidad
  */
+
+// Función de validación de pedido, que lanza un error si el pedido es inválido.
+export async function validarPedido(nuevoPedido: NuevoPedido): Promise<void> {
+const MESA_VALIDA = /^(?:[1-9]|1\d|20)$/; // Mesas del 1 al 20
+const CLIENTE_VALIDO = /^[\p{L}\p{M}][\p{L}\p{M} '-]{0,49}$/u; // Nombre de 1 a 50 caracteres
+  if (
+    typeof nuevoPedido.mesa !== 'string' ||
+    !MESA_VALIDA.test(nuevoPedido.mesa)
+  ) {
+    throw new Error('Mesa inválida');
+  }
+
+if (typeof nuevoPedido.cliente !== 'string') {
+  throw new Error('Cliente inválido');
+}
+
+const cliente = nuevoPedido.cliente.trim();
+if (!CLIENTE_VALIDO.test(cliente)) {
+  throw new Error('Cliente inválido');
+}
+
+  if (
+    !Array.isArray(nuevoPedido.items) ||
+    nuevoPedido.items.length < 1 ||
+    nuevoPedido.items.length > 20
+  ) {
+    throw new Error('Cantidad de productos inválida');
+  }
+
+  for (const item of nuevoPedido.items) {
+    if (
+      !item ||
+      !Number.isSafeInteger(item.productoId) ||
+      item.productoId < 1 ||
+      !(await buscarProducto(item.productoId)) ||
+      !Number.isInteger(item.cantidad) ||
+      item.cantidad < 1 ||
+      item.cantidad > 50
+    ) {
+      throw new Error('Producto o cantidad inválidos');
+    }
+  }
+}
+
 export async function crear({ mesa, cliente, items }: NuevoPedido): Promise<PedidoConItems | null> {
   // FALLA: no se valida que items exista, sea un array, ni que cada cantidad
   // sea un entero positivo. Los tipos de `NuevoPedido` NO alcanzan: el cuerpo
   // de la petición llega como `any` y en ejecución puede traer cualquier cosa.
+  await validarPedido({ mesa, cliente, items });
+
   const filas: { productoId: number; cantidad: number; precioUnitario: number }[] = [];
+
 
   for (const item of items) {
     // Si el producto no existe, buscarProducto devuelve null y `precio`
     // revienta con un TypeError cuyo stack se filtra al cliente.
     const producto = await buscarProducto(item.productoId);
+   
     const precioUnitario = calcularPrecio(producto);
     filas.push({
       productoId: producto.id,
