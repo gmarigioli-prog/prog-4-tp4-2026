@@ -1,4 +1,5 @@
 import express from "express";
+import { rateLimit } from "express-rate-limit";
 import * as usuarios from "../services/usuarios.service";
 import {
   crearSesion,
@@ -7,6 +8,18 @@ import {
 } from "../middleware/sesion";
 
 const router = express.Router();
+const limitarIntentosLogin = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({
+      error: "Demasiados intentos. Intenta nuevamente más tarde.",
+    });
+  },
+});
 
 /**
  * Inicio de sesión.
@@ -16,10 +29,9 @@ const router = express.Router();
  *  - Contraseñas almacenadas en texto plano.
  *  - Mensajes de error que distinguen "usuario inexistente" de "contraseña
  *    incorrecta" → enumeración de usuarios.
- *  - Sin rate limiting ni bloqueo: fuerza bruta ilimitada.
  *  - El identificador de sesión no se regenera (fijación de sesión).
  */
-router.post("/login", async (req, res, next) => {
+router.post("/login", limitarIntentosLogin, async (req, res, next) => {
   try {
     const { username, password } = req.body || {};
 
