@@ -2,6 +2,11 @@ import * as db from '../db';
 import type { Usuario } from '../tipos';
 import bcrypt from 'bcryptjs';
 
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
+  'dummy-password-not-associated-with-an-account',
+  10
+);
+
 /**
  * Servicio de usuarios.
  *
@@ -40,10 +45,10 @@ export async function buscarPorUsername(username: string): Promise<Usuario | nul
  */
 export async function autenticar(username: string, password: string): Promise<Usuario | null> {
   const usuario = await buscarPorUsername(username);
-  if (!usuario) return null;
+  const hash = usuario?.password ?? DUMMY_PASSWORD_HASH;
 
-  const passwordValida = await bcrypt.compare(password, usuario.password);
-  return passwordValida ? usuario : null;
+  const passwordValida = await bcrypt.compare(password, hash);
+  return usuario && passwordValida ? usuario : null;
 }
 
 /** Lista todos los usuarios (para el panel de administración). */
