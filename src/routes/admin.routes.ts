@@ -1,7 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
 
 import config from '../config';
 import * as catalogo from '../services/catalogo.service';
@@ -10,6 +10,7 @@ import { requiereSesion, requiereRol } from '../middleware/auth';
 import type { Usuario } from '../tipos';
 
 const router = express.Router();
+const HOSTS_PERMITIDOS = new Set(['proveedor.origen.com', '127.0.0.1']);
 
 /**
  * Rutas del panel de administración.
@@ -148,17 +149,42 @@ router.post('/cambiar-contrasena', async (req, res, next) => {
  * -----------------------------------------------------------------------------
  */
 router.post('/probar-conexion', (req, res) => {
-  const { host } = req.body || {};
+  const host = req.body?.host;
 
-  // FALLA: entrada de usuario concatenada en un comando de shell.
-  const comando = `ping -c 3 ${host}`;
+  // Lista blanca: sólo se permite probar destinos explícitamente aprobados
+  if (typeof host !== 'string' || !HOSTS_PERMITIDOS.has(host)) {
+    return res.status(400).json({ error: 'Host no permitido.' });
+  }
 
-  exec(comando, (error, stdout, stderr) => {
-    res.json({
-      comando,
-      salida: stdout,
-      error: stderr || (error ? error.message : null),
-    });
+  const proceso = spawn('ping', ['-c', '3', host], {
+    shell: false,
+    timeout: 5000,
+  });
+
+  let salida = '';
+  let error = '';
+
+  proceso.stdout.on('data', (parte) => {
+    salida += parte.toString();
+  });
+
+  proceso.stderr.on('data', (parte) => {
+    error += parte.toString();
+  });
+
+  proceso.on('error', () => {
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'No se pudo iniciar la prueba de conexión.' });
+    }
+  });
+
+  proceso.on('close', (codigo) => {
+    if (!res.headersSent) {
+      res.status(codigo === 0 ? 200 : 502).json({
+        salida,
+        error: codigo === 0 ? null : error || 'No se pudo conectar al host.',
+      });
+    }
   });
 });
 
