@@ -85,9 +85,7 @@ if (!CLIENTE_VALIDO.test(cliente)) {
 }
 
 export async function crear({ mesa, cliente, items }: NuevoPedido): Promise<PedidoConItems | null> {
-  // FALLA: no se valida que items exista, sea un array, ni que cada cantidad
-  // sea un entero positivo. Los tipos de `NuevoPedido` NO alcanzan: el cuerpo
-  // de la petición llega como `any` y en ejecución puede traer cualquier cosa.
+  //  Arreglada con función de lista blanca agregada arriba
   await validarPedido({ mesa, cliente, items });
 
   const filas: { productoId: number; cantidad: number; precioUnitario: number }[] = [];
