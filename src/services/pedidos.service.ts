@@ -18,6 +18,10 @@ export interface NuevoPedido {
 /** Id tal como llega en la URL (texto) o ya convertido. */
 type Id = number | string;
 
+function errorValidacion(mensaje: string): Error & { status: number } {
+  return Object.assign(new Error(mensaje), { status: 400 });
+}
+
 /**
  * Servicio de pedidos.
  *
@@ -40,16 +44,62 @@ type Id = number | string;
  * Crea un pedido a partir de una lista de items { productoId, cantidad }.
  * Total = suma de calcularPrecio(producto) x cantidad
  */
+
+// Función de validación de pedido, que lanza un error si el pedido es inválido.
+export async function validarPedido(nuevoPedido: NuevoPedido): Promise<void> {
+const MESA_VALIDA = /^(?:[1-9]|1\d|20)$/; // Mesas del 1 al 20
+const CLIENTE_VALIDO = /^[\p{L}\p{M}][\p{L}\p{M} '-]{0,49}$/u; // Nombre de 1 a 50 caracteres
+  if (
+    typeof nuevoPedido.mesa !== 'string' ||
+    !MESA_VALIDA.test(nuevoPedido.mesa)
+  ) {
+    throw errorValidacion('Mesa inválida');
+  }
+
+if (typeof nuevoPedido.cliente !== 'string') {
+  throw errorValidacion('Cliente inválido');
+}
+
+const cliente = nuevoPedido.cliente.trim();
+if (!CLIENTE_VALIDO.test(cliente)) {
+  throw errorValidacion('Cliente inválido');
+}
+
+  if (
+    !Array.isArray(nuevoPedido.items) ||
+    nuevoPedido.items.length < 1 ||
+    nuevoPedido.items.length > 20
+  ) {
+    throw errorValidacion('Cantidad de productos inválida');
+  }
+
+  for (const item of nuevoPedido.items) {
+    if (
+      !item ||
+      !Number.isSafeInteger(item.productoId) ||
+      item.productoId < 1 ||
+      !(await buscarProducto(item.productoId)) ||
+      !Number.isInteger(item.cantidad) ||
+      item.cantidad < 1 ||
+      item.cantidad > 50
+    ) {
+      throw errorValidacion('Producto o cantidad inválidos');
+    }
+  }
+}
+
 export async function crear({ mesa, cliente, items }: NuevoPedido): Promise<PedidoConItems | null> {
-  // FALLA: no se valida que items exista, sea un array, ni que cada cantidad
-  // sea un entero positivo. Los tipos de `NuevoPedido` NO alcanzan: el cuerpo
-  // de la petición llega como `any` y en ejecución puede traer cualquier cosa.
+  //  Arreglada con función de lista blanca agregada arriba
+  await validarPedido({ mesa, cliente, items });
+
   const filas: { productoId: number; cantidad: number; precioUnitario: number }[] = [];
+
 
   for (const item of items) {
     // Si el producto no existe, buscarProducto devuelve null y `precio`
     // revienta con un TypeError cuyo stack se filtra al cliente.
     const producto = await buscarProducto(item.productoId);
+   
     const precioUnitario = calcularPrecio(producto);
     filas.push({
       productoId: producto.id,
@@ -90,12 +140,12 @@ async function buscarProducto(productoId: number): Promise<Producto> {
 
 /** Lista pedidos (con filtro opcional por mesa). */
 export async function listar(mesa?: string): Promise<Pedido[]> {
-  // FALLA: inyección SQL en el filtro de mesa.
+  // Inyección SQL corregida: consulta parametrizada.
   let sql = 'SELECT * FROM pedidos';
-  if (mesa) sql += ` WHERE mesa = '${mesa}'`;
+  if (mesa) sql += ` WHERE mesa = $1`;
   sql += ' ORDER BY id DESC';
 
-  const { rows } = await db.query<Pedido>(sql);
+  const { rows } = await db.query<Pedido>(sql, [mesa]);
   return rows;
 }
 

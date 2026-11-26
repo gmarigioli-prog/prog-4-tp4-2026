@@ -18,8 +18,9 @@ router.get('/', async (req, res, next) => {
 /**
  * POST /api/comentarios
  *
- * FALLAS: sin token anti-CSRF, sin validación de longitud/rango y sin
- * sanitización (XSS almacenado).
+ * FALLAS: sin validación de longitud/rango y sin sanitización (XSS
+ * almacenado). La protección CSRF para los métodos mutantes se aplica
+ * centralmente en app.ts.
  */
 router.post('/', async (req, res, next) => {
   try {

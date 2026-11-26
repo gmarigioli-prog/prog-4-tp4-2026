@@ -14,11 +14,11 @@
 /** PostgreSQL devuelve las columnas NUMERIC como texto ("2500.00"). */
 export type Numerico = number | string;
 
-export type Rol = 'admin' | 'barista' | 'mozo' | 'cliente';
+export type Rol = "admin" | "barista" | "mozo" | "cliente";
 
-export type TipoProducto = 'espresso' | 'filtrado' | 'pasteleria';
+export type TipoProducto = "espresso" | "filtrado" | "pasteleria";
 
-export type Variedad = 'Brasil' | 'Colombia' | 'Etiopía';
+export type Variedad = "Brasil" | "Colombia" | "Etiopía";
 
 /** Datos de un producto, sin las columnas que genera la base. */
 export interface DatosProducto {
@@ -54,12 +54,14 @@ export interface Usuario {
 }
 
 /** Lo que se guarda del usuario dentro de la sesión. */
-export type UsuarioSesion = Pick<Usuario, 'id' | 'username' | 'rol' | 'nombre'>;
+export type UsuarioSesion = Pick<Usuario, "id" | "username" | "rol" | "nombre">;
 
 export interface Sesion {
   usuario: UsuarioSesion;
   creadaEn: number;
-  expiraEn: number | null;
+  expiraEn: number;
+  expiraAbsolutaEn: number;
+  csrfToken: string;
 }
 
 /** Fila de la tabla `pedidos`. */
