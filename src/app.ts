@@ -1,6 +1,7 @@
 import path from "path";
 import crypto from "crypto";
 import express from "express";
+import helmet from "helmet";
 
 import config from "./config";
 import { rutaNoEncontrada, manejadorErrores } from "./middleware/errores";
@@ -14,6 +15,7 @@ import adminRoutes from "./routes/admin.routes";
 import debugRoutes from "./routes/debug.routes";
 
 const app = express();
+app.use(helmet());
 
 /**
  * FALLA — Ajustes de configuración (OWASP A05:2021)
