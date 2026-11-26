@@ -28,11 +28,10 @@ export function manejadorErrores(
   res: Response,
   next: NextFunction,
 ): void {
-  console.error("[error]", err.message);
+  console.error("[error]", err);
 
   // FALLA: se filtra el stack trace al cliente.
   res.status(err.status || 500).json({
-    error: err.message,
-    stack: err.stack,
+    error: "No se pudo completar la solicitud.",
   });
 }
