@@ -12,13 +12,15 @@
 -- el esquema. Sólo puede leer y escribir datos del catálogo.
 -- =============================================================================
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'origen_app') THEN
-        CREATE ROLE origen_app LOGIN PASSWORD 'origen_app_2024';
-    END IF;
-END
-$$;
+\getenv app_password DB_PASSWORD
+
+SELECT format('CREATE ROLE origen_app LOGIN PASSWORD %L', :'app_password')
+WHERE NOT EXISTS (
+    SELECT FROM pg_catalog.pg_roles WHERE rolname = 'origen_app'
+)
+\gexec
+
+ALTER ROLE origen_app WITH LOGIN PASSWORD :'app_password';
 
 GRANT CONNECT ON DATABASE origen TO origen_app;
 GRANT USAGE ON SCHEMA public TO origen_app;

@@ -1,5 +1,13 @@
 import path from 'path';
 
+function requiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Falta la variable de entorno ${name}.`);
+  }
+  return value;
+}
+
 /**
  * Configuración de la aplicación.
  *
@@ -24,8 +32,8 @@ export default {
     // FALLA: la aplicación se conecta con el superusuario de la base de datos
     // (mínimos privilegios). Existe un usuario `origen_app` con permisos
     // reducidos para usar como corrección.
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
+    user: requiredEnv('DB_USER'),
+    password: requiredEnv('DB_PASSWORD'),
   },
 
   // FALLA: secreto fijo y predecible, escrito en el código.
