@@ -18,6 +18,10 @@ export interface NuevoPedido {
 /** Id tal como llega en la URL (texto) o ya convertido. */
 type Id = number | string;
 
+function errorValidacion(mensaje: string): Error & { status: number } {
+  return Object.assign(new Error(mensaje), { status: 400 });
+}
+
 /**
  * Servicio de pedidos.
  *
@@ -49,16 +53,16 @@ const CLIENTE_VALIDO = /^[\p{L}\p{M}][\p{L}\p{M} '-]{0,49}$/u; // Nombre de 1 a 
     typeof nuevoPedido.mesa !== 'string' ||
     !MESA_VALIDA.test(nuevoPedido.mesa)
   ) {
-    throw new Error('Mesa inválida');
+    throw errorValidacion('Mesa inválida');
   }
 
 if (typeof nuevoPedido.cliente !== 'string') {
-  throw new Error('Cliente inválido');
+  throw errorValidacion('Cliente inválido');
 }
 
 const cliente = nuevoPedido.cliente.trim();
 if (!CLIENTE_VALIDO.test(cliente)) {
-  throw new Error('Cliente inválido');
+  throw errorValidacion('Cliente inválido');
 }
 
   if (
@@ -66,7 +70,7 @@ if (!CLIENTE_VALIDO.test(cliente)) {
     nuevoPedido.items.length < 1 ||
     nuevoPedido.items.length > 20
   ) {
-    throw new Error('Cantidad de productos inválida');
+    throw errorValidacion('Cantidad de productos inválida');
   }
 
   for (const item of nuevoPedido.items) {
@@ -79,7 +83,7 @@ if (!CLIENTE_VALIDO.test(cliente)) {
       item.cantidad < 1 ||
       item.cantidad > 50
     ) {
-      throw new Error('Producto o cantidad inválidos');
+      throw errorValidacion('Producto o cantidad inválidos');
     }
   }
 }

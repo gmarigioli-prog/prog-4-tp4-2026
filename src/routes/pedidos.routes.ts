@@ -7,10 +7,10 @@ const router = express.Router();
  * POST /api/pedidos
  * Crea un pedido y devuelve su total calculado.
  *
+ * La protección CSRF para todos los métodos mutantes de /api se aplica
+ * centralmente en app.ts.
+ *
  * FALLAS:
- *  - CSRF: no hay token anti-CSRF ni verificación de Origin/Referer, y la
- *    cookie de sesión no tiene SameSite. Una página externa puede POSTear
- *    con las cookies de la víctima.
  *  - Validación de entrada débil: no se valida tipo, rango ni longitud de
  *    `cantidad`, `mesa`, `cliente` ni de la lista de items.
  *  - No requiere autenticación ni rol.

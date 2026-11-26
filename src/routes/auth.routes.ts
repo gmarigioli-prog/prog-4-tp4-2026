@@ -31,6 +31,8 @@ const limitarIntentosLogin = rateLimit({
  *    incorrecta" → enumeración de usuarios.
  *  - El identificador de sesión no se regenera (fijación de sesión).
  */
+
+// Vulnerabilidad a fuerza bruta corregida con rate limiting
 router.post("/login", limitarIntentosLogin, async (req, res, next) => {
   try {
     const { username, password } = req.body || {};

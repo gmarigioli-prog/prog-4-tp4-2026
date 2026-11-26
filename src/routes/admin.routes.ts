@@ -46,19 +46,11 @@ function detectarMimeImagen(buffer: Buffer): string | null {
  * -----------------------------------------------------------------------------
  * FALLA — Autorización ausente / escalada de privilegios (OWASP A01:2021)
  * -----------------------------------------------------------------------------
- * Se exige estar autenticado, pero NO se comprueba el rol: `requiereRol` está
- * importado y no se usa. Cualquier usuario autenticado (incluso con rol
- * "cliente") entra al panel y puede:
- *   - crear, editar y BORRAR productos,
- *   - cambiar contraseñas,
- *   - dar de alta usuarios y cambiarles el rol (escalada de privilegios),
- *   - ejecutar comandos en el servidor.
- *
- * Corrección: `router.use(requiereRol('admin'))` sobre las rutas sensibles.
+ * Todas las rutas del panel requieren una sesión y el rol de administrador.
  * -----------------------------------------------------------------------------
  */
 router.use(requiereSesion);
-router.use(requiereRol ('admin'));
+router.use(requiereRol('admin'));
 
 /** GET /api/admin/usuarios */
 router.get('/usuarios', async (req, res, next) => {
@@ -125,8 +117,8 @@ router.put('/productos/:id', async (req, res, next) => {
 /**
  * DELETE /api/admin/productos/:id
  *
- * FALLA — CSRF: la petición que borra un producto no lleva ningún token y se
- * acepta con un simple GET/POST desde cualquier origen.
+ * La protección CSRF para los métodos mutantes se aplica centralmente en
+ * app.ts.
  */
 router.delete('/productos/:id', async (req, res, next) => {
   try {
@@ -143,8 +135,8 @@ router.delete('/productos/:id', async (req, res, next) => {
 /**
  * POST /api/admin/cambiar-contrasena
  *
- * FALLAS: sin token anti-CSRF, sin límite de intentos, y la contraseña nueva
- * se guarda en texto plano.
+ * FALLAS: sin límite de intentos, y la contraseña nueva se guarda en texto
+ * plano. La protección CSRF se aplica centralmente en app.ts.
  */
 router.post('/cambiar-contrasena', async (req, res, next) => {
   try {

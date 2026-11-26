@@ -37,14 +37,22 @@ export async function listar(filtros: FiltrosCatalogo = {}): Promise<ProductoCon
 
   // Inyección SQL corregida: consultas parametrizadas.
   let sql = 'SELECT * FROM productos WHERE activo = true';
-  if (tipo) sql += ` AND tipo = $1`;
-  if (variedad) sql += ` AND variedad = $2`;
+  const params: string[] = [];
+  if (tipo) {
+    params.push(tipo);
+    sql += ` AND tipo = $${params.length}`;
+  }
+  if (variedad) {
+    params.push(variedad);
+    sql += ` AND variedad = $${params.length}`;
+  }
   if (q) {
-    sql += ` AND (nombre ILIKE $3 OR descripcion ILIKE $4)`;
+    params.push(`%${q}%`);
+    sql += ` AND (nombre ILIKE $${params.length} OR descripcion ILIKE $${params.length})`;
   }
   sql += ' ORDER BY tipo, variedad NULLS FIRST, id';
 
-  const { rows } = await db.query<Producto>(sql, [tipo, variedad, `%${q}%`, `%${q}%`]);
+  const { rows } = await db.query<Producto>(sql, params);
 
   return rows.map((p) => ({ ...p, precio: calcularPrecio(p) }));
 }
